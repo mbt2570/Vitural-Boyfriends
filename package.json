@@ -10,8 +10,8 @@
     "lint": "next lint"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "mbt2570",
+  "license": "MIT",
   "dependencies": {
     "@types/bcrypt": "^6.0.0",
     "bcrypt": "^6.0.0",

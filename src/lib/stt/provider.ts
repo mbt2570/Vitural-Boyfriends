@@ -4,7 +4,7 @@
  */
 
 export interface STTOptions {
-  audio: Buffer | Uint8Array | ArrayBuffer;
+  audio: ArrayBuffer | ArrayBufferView | Buffer;
   filename?: string;
   model?: string;
   language?: string;
@@ -44,8 +44,9 @@ export class STTProvider {
 
     // 构造 FormData
     const formData = new FormData();
-    const blob = audio instanceof ArrayBuffer ? new Uint8Array(audio) : audio;
-    formData.append("file", new Blob([blob]), filename);
+    // new Uint8Array() 绕开 Node Buffer 新泛型与 BlobPart 的类型不兼容
+    const view = audio instanceof ArrayBuffer ? new Uint8Array(audio) : new Uint8Array(audio.buffer as ArrayBuffer, audio.byteOffset, audio.byteLength);
+    formData.append("file", new Blob([view as BlobPart]), filename);
     formData.append("model", model);
     if (language) formData.append("language", language);
 
