@@ -11,6 +11,7 @@ import bcrypt from "bcrypt";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: {
@@ -24,8 +25,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "邮箱", type: "email", placeholder: "you@example.com" },
         password: { label: "密码", type: "password" },
+        turnstileToken: { label: "Turnstile", type: "text" },
       },
       authorize: async (credentials) => {
+        // 人机验证
+        const token =
+          typeof credentials?.turnstileToken === "string"
+            ? credentials.turnstileToken
+            : null;
+        const captcha = await verifyTurnstile(token);
+        if (!captcha.success) return null;
+
         if (!credentials?.email || !credentials?.password) return null;
 
         const email = String(credentials.email).toLowerCase().trim();

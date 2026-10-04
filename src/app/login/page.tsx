@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 export const dynamic = "force-dynamic";
 
@@ -11,12 +12,16 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
-  const error = searchParams.get("error");
+  const registered = searchParams.get("registered");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileReady, setTurnstileReady] = useState(false);
+
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +31,7 @@ function LoginForm() {
     const result = await signIn("credentials", {
       email,
       password,
+      turnstileToken, // NextAuth credentials 会透传到 authorize 回调
       redirect: false,
     });
 
@@ -48,6 +54,12 @@ function LoginForm() {
           </Link>
           <p className="mt-2 text-gray-500 text-sm">登录你的账号</p>
         </div>
+
+        {registered && (
+          <div className="mb-4 px-3 py-2 rounded-lg bg-green-50 text-green-600 text-sm text-center">
+            注册成功！请登录
+          </div>
+        )}
 
         <form
           onSubmit={handleSubmit}
@@ -80,15 +92,28 @@ function LoginForm() {
             />
           </div>
 
-          {(formError || error) && (
+          {/* Turnstile 人机验证 */}
+          {siteKey && (
+            <div className="flex justify-center py-1">
+              <Turnstile
+                siteKey={siteKey}
+                onSuccess={(token) => setTurnstileToken(token)}
+                onError={() => { setTurnstileToken(null); setTurnstileReady(false); }}
+                onExpire={() => setTurnstileToken(null)}
+                onLoad={() => setTurnstileReady(true)}
+              />
+            </div>
+          )}
+
+          {formError && (
             <div className="px-3 py-2 rounded-lg bg-red-50 text-red-600 text-sm">
-              {formError || "登录失败，请检查账号密码"}
+              {formError}
             </div>
           )}
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || (turnstileReady && !turnstileToken)}
             className="w-full py-2.5 rounded-xl text-white font-medium text-sm bg-gradient-to-r from-purple-500 to-indigo-500 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? "登录中..." : "登录"}

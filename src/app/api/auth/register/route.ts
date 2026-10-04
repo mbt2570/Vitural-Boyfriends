@@ -8,6 +8,7 @@ import bcrypt from "bcrypt";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +16,16 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, password } = body;
+    const { name, email, password, turnstileToken } = body;
+
+    // 人机验证（放在最前面，阻断机器人）
+    const captcha = await verifyTurnstile(turnstileToken);
+    if (!captcha.success) {
+      return NextResponse.json(
+        { error: captcha.error || "人机验证失败" },
+        { status: 400 }
+      );
+    }
 
     // 基础校验
     if (!name || !email || !password) {

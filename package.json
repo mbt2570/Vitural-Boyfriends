@@ -13,6 +13,7 @@
   "author": "mbt2570",
   "license": "MIT",
   "dependencies": {
+    "@marsidev/react-turnstile": "^1.6.1",
     "@types/bcrypt": "^6.0.0",
     "bcrypt": "^6.0.0",
     "drizzle-orm": "^0.45.3",
